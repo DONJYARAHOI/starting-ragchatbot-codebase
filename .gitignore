@@ -17,6 +17,7 @@ ENV/
 
 # ChromaDB
 backend/chroma_db/
+chroma_db/
 
 # Uploads
 uploads/
@@ -33,3 +34,6 @@ uploads/
 Thumbs.db
 
 .playwright-mcp/
+
+# Temporary directories
+.trees/
