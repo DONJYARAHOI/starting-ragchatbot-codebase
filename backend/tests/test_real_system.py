@@ -2,19 +2,22 @@
 Diagnostic tests to check the real system state
 Run these to identify the actual problem with "query failed"
 """
+
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+import os
 
 from config import config
 from rag_system import RAGSystem
-import os
 
 
 def test_api_key_exists():
     """Check if ANTHROPIC_API_KEY is set"""
     print("\n=== API Key Check ===")
-    api_key = os.getenv('ANTHROPIC_API_KEY')
+    api_key = os.getenv("ANTHROPIC_API_KEY")
     if api_key:
         print(f"✓ API key is set (length: {len(api_key)})")
         print(f"  First 10 chars: {api_key[:10]}...")
@@ -29,6 +32,7 @@ def test_chroma_db_exists():
     """Check if ChromaDB directory exists and has data"""
     print("\n=== ChromaDB Check ===")
     import os
+
     chroma_path = config.CHROMA_PATH
 
     if os.path.exists(chroma_path):
@@ -52,7 +56,7 @@ def test_courses_loaded():
         print(f"Total courses: {analytics['total_courses']}")
         print(f"Course titles: {analytics['course_titles']}")
 
-        if analytics['total_courses'] == 0:
+        if analytics["total_courses"] == 0:
             print("✗ No courses loaded!")
             print("  Fix: Run rag_system.add_course_folder('../docs')")
             return False
@@ -86,6 +90,7 @@ def test_search_tool_works():
     except Exception as e:
         print(f"✗ Error executing search: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -131,6 +136,7 @@ def test_ai_generator_initialization():
     except Exception as e:
         print(f"✗ Error initializing AI generator: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -140,7 +146,7 @@ def test_full_query_flow():
     print("\n=== Full Query Test ===")
     print("WARNING: This will make a real API call if API key is set!")
 
-    api_key = os.getenv('ANTHROPIC_API_KEY')
+    api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
         print("✗ Skipping - no API key set")
         return False
@@ -150,14 +156,14 @@ def test_full_query_flow():
 
         # Check if data is loaded
         analytics = rag.get_course_analytics()
-        if analytics['total_courses'] == 0:
+        if analytics["total_courses"] == 0:
             print("✗ Cannot test - no courses loaded")
             return False
 
         print("Attempting real query (this will call Anthropic API)...")
         answer, sources = rag.query("What is machine learning?")
 
-        print(f"✓ Query succeeded!")
+        print("✓ Query succeeded!")
         print(f"  Answer length: {len(answer)} characters")
         print(f"  Number of sources: {len(sources)}")
         print(f"  First 200 chars of answer: {answer[:200]}...")
@@ -167,14 +173,15 @@ def test_full_query_flow():
         print(f"✗ Query failed with error: {e}")
         print("\nFull traceback:")
         import traceback
+
         traceback.print_exc()
         return False
 
 
 if __name__ == "__main__":
-    print("="*60)
+    print("=" * 60)
     print("DIAGNOSTIC TEST SUITE FOR RAG CHATBOT")
-    print("="*60)
+    print("=" * 60)
 
     results = {
         "API Key": test_api_key_exists(),
@@ -185,23 +192,23 @@ if __name__ == "__main__":
         "AI Generator": test_ai_generator_initialization(),
     }
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("SUMMARY")
-    print("="*60)
+    print("=" * 60)
     for test_name, passed in results.items():
         status = "✓ PASS" if passed else "✗ FAIL"
         print(f"{status}: {test_name}")
 
     # Only run full query test if basics pass
     if all([results["API Key"], results["Courses Loaded"], results["Search Tool"]]):
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("Running Full Query Test...")
-        print("="*60)
+        print("=" * 60)
         test_full_query_flow()
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("LIKELY ISSUE:")
-    print("="*60)
+    print("=" * 60)
 
     if not results["API Key"]:
         print("Missing ANTHROPIC_API_KEY - set this environment variable")

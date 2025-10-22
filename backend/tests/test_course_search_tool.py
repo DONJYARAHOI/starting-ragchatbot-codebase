@@ -1,8 +1,8 @@
 """
 Tests for CourseSearchTool functionality - the core of RAG search
 """
-import pytest
-from search_tools import CourseSearchTool, ToolManager
+
+from search_tools import ToolManager
 
 
 class TestCourseSearchToolDefinition:
@@ -13,31 +13,31 @@ class TestCourseSearchToolDefinition:
         tool_def = course_search_tool.get_tool_definition()
 
         # Check required keys
-        assert 'name' in tool_def
-        assert 'description' in tool_def
-        assert 'input_schema' in tool_def
+        assert "name" in tool_def
+        assert "description" in tool_def
+        assert "input_schema" in tool_def
 
         # Check values
-        assert tool_def['name'] == 'search_course_content'
-        assert isinstance(tool_def['description'], str)
-        assert tool_def['input_schema']['type'] == 'object'
+        assert tool_def["name"] == "search_course_content"
+        assert isinstance(tool_def["description"], str)
+        assert tool_def["input_schema"]["type"] == "object"
 
     def test_tool_definition_parameters(self, course_search_tool):
         """Test tool definition has correct parameters"""
         tool_def = course_search_tool.get_tool_definition()
-        properties = tool_def['input_schema']['properties']
+        properties = tool_def["input_schema"]["properties"]
 
         # Check required parameters
-        assert 'query' in properties
-        assert 'course_name' in properties
-        assert 'lesson_number' in properties
+        assert "query" in properties
+        assert "course_name" in properties
+        assert "lesson_number" in properties
 
         # Check required fields
-        assert 'query' in tool_def['input_schema']['required']
+        assert "query" in tool_def["input_schema"]["required"]
 
         # Optional fields should not be required
-        assert 'course_name' not in tool_def['input_schema']['required']
-        assert 'lesson_number' not in tool_def['input_schema']['required']
+        assert "course_name" not in tool_def["input_schema"]["required"]
+        assert "lesson_number" not in tool_def["input_schema"]["required"]
 
 
 class TestCourseSearchToolExecute:
@@ -56,10 +56,7 @@ class TestCourseSearchToolExecute:
 
     def test_execute_query_with_course_filter(self, course_search_tool):
         """Test executing query with course name filter"""
-        result = course_search_tool.execute(
-            query="machine learning",
-            course_name="Introduction to Machine Learning"
-        )
+        result = course_search_tool.execute(query="machine learning", course_name="Introduction to Machine Learning")
 
         assert isinstance(result, str)
         assert not result.startswith("No relevant content found")
@@ -70,7 +67,7 @@ class TestCourseSearchToolExecute:
         """Test executing query with partial course name"""
         result = course_search_tool.execute(
             query="regression",
-            course_name="Machine Learning"  # Partial name
+            course_name="Machine Learning",  # Partial name
         )
 
         # Should work with partial course name matching
@@ -81,9 +78,7 @@ class TestCourseSearchToolExecute:
     def test_execute_query_with_lesson_filter(self, course_search_tool):
         """Test executing query with lesson number filter"""
         result = course_search_tool.execute(
-            query="regression",
-            course_name="Introduction to Machine Learning",
-            lesson_number=1
+            query="regression", course_name="Introduction to Machine Learning", lesson_number=1
         )
 
         assert isinstance(result, str)
@@ -96,10 +91,7 @@ class TestCourseSearchToolExecute:
         Vector search always finds the closest match, so even a completely
         unrelated course name will match something. This is expected behavior.
         """
-        result = course_search_tool.execute(
-            query="anything",
-            course_name="Totally Nonexistent Course XYZ123"
-        )
+        result = course_search_tool.execute(query="anything", course_name="Totally Nonexistent Course XYZ123")
 
         assert isinstance(result, str)
         # Will return results from the closest matching course, not an error
@@ -144,25 +136,21 @@ class TestCourseSearchToolSources:
         for source in course_search_tool.last_sources:
             # Each source should be a dict with 'text' and 'link'
             assert isinstance(source, dict)
-            assert 'text' in source
-            assert 'link' in source
+            assert "text" in source
+            assert "link" in source
             # Text should include course title
-            assert isinstance(source['text'], str)
-            assert len(source['text']) > 0
+            assert isinstance(source["text"], str)
+            assert len(source["text"]) > 0
 
     def test_sources_include_lesson_links(self, course_search_tool):
         """Test that sources include lesson links when available"""
-        course_search_tool.execute(
-            query="regression",
-            course_name="Introduction to Machine Learning",
-            lesson_number=1
-        )
+        course_search_tool.execute(query="regression", course_name="Introduction to Machine Learning", lesson_number=1)
 
         # Should have sources
         assert len(course_search_tool.last_sources) > 0
 
         # At least one source should have a link
-        links = [s.get('link') for s in course_search_tool.last_sources]
+        links = [s.get("link") for s in course_search_tool.last_sources]
         assert any(link is not None for link in links)
 
     def test_sources_reset_on_new_search(self, course_search_tool):
@@ -192,10 +180,7 @@ class TestCourseSearchToolFormatting:
 
     def test_format_results_with_lesson(self, course_search_tool):
         """Test formatting includes lesson number"""
-        result = course_search_tool.execute(
-            query="regression",
-            lesson_number=1
-        )
+        result = course_search_tool.execute(query="regression", lesson_number=1)
 
         # Should include lesson number in the format
         assert "Lesson 1" in result or "lesson 1" in result.lower()
@@ -216,7 +201,7 @@ class TestToolManager:
         manager = ToolManager()
         manager.register_tool(course_search_tool)
 
-        assert 'search_course_content' in manager.tools
+        assert "search_course_content" in manager.tools
 
     def test_get_tool_definitions(self, tool_manager):
         """Test getting tool definitions"""
@@ -224,28 +209,25 @@ class TestToolManager:
 
         assert isinstance(definitions, list)
         assert len(definitions) == 1
-        assert definitions[0]['name'] == 'search_course_content'
+        assert definitions[0]["name"] == "search_course_content"
 
     def test_execute_tool(self, tool_manager):
         """Test executing a tool through the manager"""
-        result = tool_manager.execute_tool(
-            'search_course_content',
-            query='linear regression'
-        )
+        result = tool_manager.execute_tool("search_course_content", query="linear regression")
 
         assert isinstance(result, str)
         assert len(result) > 0
 
     def test_execute_nonexistent_tool(self, tool_manager):
         """Test executing non-existent tool returns error"""
-        result = tool_manager.execute_tool('nonexistent_tool', query='test')
+        result = tool_manager.execute_tool("nonexistent_tool", query="test")
 
         assert "not found" in result
 
     def test_get_last_sources(self, tool_manager):
         """Test getting sources from last search"""
         # Execute a search
-        tool_manager.execute_tool('search_course_content', query='machine learning')
+        tool_manager.execute_tool("search_course_content", query="machine learning")
 
         # Get sources
         sources = tool_manager.get_last_sources()
@@ -256,7 +238,7 @@ class TestToolManager:
     def test_reset_sources(self, tool_manager):
         """Test resetting sources"""
         # Execute a search
-        tool_manager.execute_tool('search_course_content', query='machine learning')
+        tool_manager.execute_tool("search_course_content", query="machine learning")
 
         # Verify sources exist
         assert len(tool_manager.get_last_sources()) > 0
@@ -274,9 +256,7 @@ class TestCourseSearchToolEdgeCases:
     def test_execute_with_invalid_lesson_number(self, course_search_tool):
         """Test executing with invalid lesson number"""
         result = course_search_tool.execute(
-            query="test",
-            course_name="Introduction to Machine Learning",
-            lesson_number=999
+            query="test", course_name="Introduction to Machine Learning", lesson_number=999
         )
 
         # Should handle gracefully

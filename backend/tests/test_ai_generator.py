@@ -2,15 +2,17 @@
 Tests for AIGenerator tool calling functionality
 These tests verify the AI correctly uses tools when appropriate
 """
+
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import Mock, MagicMock, patch
 from ai_generator import AIGenerator
 
 
 class TestAIGeneratorToolDefinitions:
     """Test that AIGenerator correctly handles tool definitions"""
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_accepts_tool_definitions(self, mock_anthropic):
         """Test that generator accepts and uses tool definitions"""
         # Create a mock client
@@ -31,32 +33,23 @@ class TestAIGeneratorToolDefinitions:
             {
                 "name": "search_course_content",
                 "description": "Search for course content",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "query": {"type": "string"}
-                    },
-                    "required": ["query"]
-                }
+                "input_schema": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]},
             }
         ]
 
         # Generate response with tools
-        response = generator.generate_response(
-            query="Test query",
-            tools=tools
-        )
+        response = generator.generate_response(query="Test query", tools=tools)
 
         # Verify tools were passed to API
         call_args = mock_client.messages.create.call_args
-        assert 'tools' in call_args.kwargs
-        assert call_args.kwargs['tools'] == tools
+        assert "tools" in call_args.kwargs
+        assert call_args.kwargs["tools"] == tools
 
 
 class TestAIGeneratorToolCalling:
     """Test that AIGenerator correctly calls tools"""
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_tool_call_triggers_execution(self, mock_anthropic):
         """Test that when AI requests tool use, it gets executed"""
         # Create a mock client
@@ -94,21 +87,16 @@ class TestAIGeneratorToolCalling:
         # Generate response
         tools = [{"name": "search_course_content", "description": "test"}]
         response = generator.generate_response(
-            query="What is machine learning?",
-            tools=tools,
-            tool_manager=mock_tool_manager
+            query="What is machine learning?", tools=tools, tool_manager=mock_tool_manager
         )
 
         # Verify tool was executed
-        mock_tool_manager.execute_tool.assert_called_once_with(
-            "search_course_content",
-            query="test query"
-        )
+        mock_tool_manager.execute_tool.assert_called_once_with("search_course_content", query="test query")
 
         # Verify we got the final response
         assert response == "Final response"
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_tool_result_passed_back_to_ai(self, mock_anthropic):
         """Test that tool results are correctly passed back to AI"""
         mock_client = MagicMock()
@@ -137,37 +125,33 @@ class TestAIGeneratorToolCalling:
         mock_tool_manager.execute_tool.return_value = "Search results here"
 
         tools = [{"name": "search_course_content"}]
-        response = generator.generate_response(
-            query="test",
-            tools=tools,
-            tool_manager=mock_tool_manager
-        )
+        response = generator.generate_response(query="test", tools=tools, tool_manager=mock_tool_manager)
 
         # Verify second call included tool results
         assert mock_client.messages.create.call_count == 2
         second_call = mock_client.messages.create.call_args_list[1]
 
         # Check that messages include tool result
-        messages = second_call.kwargs['messages']
+        messages = second_call.kwargs["messages"]
         # Should have 3 messages: User query, Assistant (tool use), User (tool result)
         assert len(messages) == 3
 
         # Find the tool result message (should be the last one)
         tool_result_msg = messages[2]
-        assert tool_result_msg['role'] == 'user'
-        assert isinstance(tool_result_msg['content'], list)
+        assert tool_result_msg["role"] == "user"
+        assert isinstance(tool_result_msg["content"], list)
 
         # Verify tool result content
-        tool_result_content = tool_result_msg['content'][0]
-        assert tool_result_content['type'] == 'tool_result'
-        assert tool_result_content['tool_use_id'] == 'tool-123'
-        assert tool_result_content['content'] == 'Search results here'
+        tool_result_content = tool_result_msg["content"][0]
+        assert tool_result_content["type"] == "tool_result"
+        assert tool_result_content["tool_use_id"] == "tool-123"
+        assert tool_result_content["content"] == "Search results here"
 
 
 class TestAIGeneratorWithoutTools:
     """Test that AIGenerator works correctly without tools"""
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_works_without_tools(self, mock_anthropic):
         """Test generator works when no tools provided"""
         mock_client = MagicMock()
@@ -186,13 +170,13 @@ class TestAIGeneratorWithoutTools:
 
         # Verify tools were not passed
         call_args = mock_client.messages.create.call_args
-        assert 'tools' not in call_args.kwargs or call_args.kwargs.get('tools') is None
+        assert "tools" not in call_args.kwargs or call_args.kwargs.get("tools") is None
 
 
 class TestAIGeneratorConversationHistory:
     """Test that AIGenerator handles conversation history"""
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_includes_conversation_history(self, mock_anthropic):
         """Test that conversation history is included in system prompt"""
         mock_client = MagicMock()
@@ -207,14 +191,11 @@ class TestAIGeneratorConversationHistory:
 
         history = "User: Previous question\nAssistant: Previous answer"
 
-        generator.generate_response(
-            query="New question",
-            conversation_history=history
-        )
+        generator.generate_response(query="New question", conversation_history=history)
 
         # Verify history was included in system prompt
         call_args = mock_client.messages.create.call_args
-        system_content = call_args.kwargs['system']
+        system_content = call_args.kwargs["system"]
         assert history in system_content
 
 
@@ -224,24 +205,24 @@ class TestAIGeneratorSystemPrompt:
     def test_system_prompt_mentions_search_tool(self):
         """Test that system prompt mentions search tool usage"""
         # The SYSTEM_PROMPT should guide the AI to use search tools
-        assert hasattr(AIGenerator, 'SYSTEM_PROMPT')
+        assert hasattr(AIGenerator, "SYSTEM_PROMPT")
         system_prompt = AIGenerator.SYSTEM_PROMPT
 
         # Check for key guidance about tool usage
-        assert 'search' in system_prompt.lower()
+        assert "search" in system_prompt.lower()
 
     def test_system_prompt_limits_searches(self):
         """Test that system prompt limits number of searches"""
         system_prompt = AIGenerator.SYSTEM_PROMPT
 
         # Should mention limiting searches
-        assert 'one search' in system_prompt.lower() or 'single search' in system_prompt.lower()
+        assert "one search" in system_prompt.lower() or "single search" in system_prompt.lower()
 
 
 class TestAIGeneratorParameters:
     """Test AIGenerator parameter handling"""
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_uses_configured_model(self, mock_anthropic):
         """Test that generator uses the configured model"""
         mock_client = MagicMock()
@@ -258,9 +239,9 @@ class TestAIGeneratorParameters:
         generator.generate_response(query="test")
 
         call_args = mock_client.messages.create.call_args
-        assert call_args.kwargs['model'] == test_model
+        assert call_args.kwargs["model"] == test_model
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_uses_configured_temperature(self, mock_anthropic):
         """Test that generator uses temperature 0"""
         mock_client = MagicMock()
@@ -276,9 +257,9 @@ class TestAIGeneratorParameters:
         generator.generate_response(query="test")
 
         call_args = mock_client.messages.create.call_args
-        assert call_args.kwargs['temperature'] == 0
+        assert call_args.kwargs["temperature"] == 0
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_uses_configured_max_tokens(self, mock_anthropic):
         """Test that generator uses max_tokens setting"""
         mock_client = MagicMock()
@@ -294,13 +275,13 @@ class TestAIGeneratorParameters:
         generator.generate_response(query="test")
 
         call_args = mock_client.messages.create.call_args
-        assert call_args.kwargs['max_tokens'] == 800
+        assert call_args.kwargs["max_tokens"] == 800
 
 
 class TestAIGeneratorErrorHandling:
     """Test AIGenerator error handling"""
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_handles_api_errors(self, mock_anthropic):
         """Test that generator handles API errors gracefully"""
         mock_client = MagicMock()

@@ -1,8 +1,8 @@
 """
 Tests for VectorStore functionality
 """
-import pytest
-from vector_store import VectorStore, SearchResults
+
+from vector_store import SearchResults
 
 
 class TestVectorStoreBasics:
@@ -58,28 +58,23 @@ class TestVectorStoreSearch:
 
     def test_search_with_course_filter(self, populated_vector_store, sample_course):
         """Test searching with course name filter"""
-        results = populated_vector_store.search(
-            "machine learning",
-            course_name=sample_course.title
-        )
+        results = populated_vector_store.search("machine learning", course_name=sample_course.title)
 
         assert not results.is_empty()
         # All results should be from the specified course
         for meta in results.metadata:
-            assert meta['course_title'] == sample_course.title
+            assert meta["course_title"] == sample_course.title
 
     def test_search_with_lesson_filter(self, populated_vector_store):
         """Test searching with lesson number filter"""
         results = populated_vector_store.search(
-            "regression",
-            course_name="Introduction to Machine Learning",
-            lesson_number=1
+            "regression", course_name="Introduction to Machine Learning", lesson_number=1
         )
 
         assert not results.is_empty()
         # All results should be from lesson 1
         for meta in results.metadata:
-            assert meta['lesson_number'] == 1
+            assert meta["lesson_number"] == 1
 
     def test_search_nonexistent_course_fuzzy_match(self, populated_vector_store):
         """Test that searching for non-existent course returns fuzzy match
@@ -87,10 +82,7 @@ class TestVectorStoreSearch:
         Vector search always returns the closest match, even if the query
         is completely unrelated. This is the expected behavior of semantic search.
         """
-        results = populated_vector_store.search(
-            "anything",
-            course_name="Nonexistent Course XYZ123"
-        )
+        results = populated_vector_store.search("anything", course_name="Nonexistent Course XYZ123")
 
         # Vector search will find the closest match, not return an error
         # This is correct behavior for semantic/fuzzy search
@@ -146,20 +138,17 @@ class TestVectorStoreMultipleCourses:
 
         assert not results.is_empty()
         # Results might come from either course
-        course_titles = set(meta['course_title'] for meta in results.metadata)
+        course_titles = {meta["course_title"] for meta in results.metadata}
         assert len(course_titles) >= 1  # At least one course
 
     def test_filter_by_specific_course(self, multi_course_vector_store):
         """Test filtering by specific course when multiple exist"""
-        results = multi_course_vector_store.search(
-            "learning",
-            course_name="Advanced Deep Learning"
-        )
+        results = multi_course_vector_store.search("learning", course_name="Advanced Deep Learning")
 
         assert not results.is_empty()
         # All results should be from the Deep Learning course
         for meta in results.metadata:
-            assert meta['course_title'] == "Advanced Deep Learning"
+            assert meta["course_title"] == "Advanced Deep Learning"
 
 
 class TestVectorStoreLinks:
@@ -211,9 +200,9 @@ class TestSearchResults:
     def test_search_results_from_chroma(self):
         """Test creating SearchResults from ChromaDB results"""
         chroma_results = {
-            'documents': [['doc1', 'doc2']],
-            'metadatas': [[{'key': 'value1'}, {'key': 'value2'}]],
-            'distances': [[0.1, 0.2]]
+            "documents": [["doc1", "doc2"]],
+            "metadatas": [[{"key": "value1"}, {"key": "value2"}]],
+            "distances": [[0.1, 0.2]],
         }
 
         results = SearchResults.from_chroma(chroma_results)
@@ -221,7 +210,7 @@ class TestSearchResults:
         assert len(results.documents) == 2
         assert len(results.metadata) == 2
         assert len(results.distances) == 2
-        assert results.documents[0] == 'doc1'
+        assert results.documents[0] == "doc1"
 
     def test_search_results_empty(self):
         """Test creating empty SearchResults"""
@@ -235,5 +224,5 @@ class TestSearchResults:
         empty_results = SearchResults([], [], [], None)
         assert empty_results.is_empty()
 
-        non_empty_results = SearchResults(['doc'], [{'key': 'val'}], [0.1], None)
+        non_empty_results = SearchResults(["doc"], [{"key": "val"}], [0.1], None)
         assert not non_empty_results.is_empty()

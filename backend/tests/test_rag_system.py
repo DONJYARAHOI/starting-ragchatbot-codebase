@@ -2,10 +2,11 @@
 Integration tests for the RAG system
 These tests verify the end-to-end functionality
 """
+
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
 from rag_system import RAGSystem
-from config import Config
 
 
 @pytest.fixture
@@ -44,7 +45,7 @@ class TestRAGSystemInitialization:
         tools = rag_system.tool_manager.get_tool_definitions()
 
         assert len(tools) == 1
-        assert tools[0]['name'] == 'search_course_content'
+        assert tools[0]["name"] == "search_course_content"
 
 
 class TestRAGSystemDocumentLoading:
@@ -65,8 +66,8 @@ class TestRAGSystemDocumentLoading:
 
         # Check course count
         analytics = rag_system.get_course_analytics()
-        assert analytics['total_courses'] == 1
-        assert course.title in analytics['course_titles']
+        assert analytics["total_courses"] == 1
+        assert course.title in analytics["course_titles"]
 
     def test_add_invalid_file(self, rag_system):
         """Test adding non-existent file returns None"""
@@ -79,12 +80,10 @@ class TestRAGSystemDocumentLoading:
         """Test adding courses from a folder"""
         # Use the actual docs folder if it exists
         import os
+
         docs_path = "../docs"
 
-        if os.path.exists(docs_path) and any(
-            f.endswith(('.txt', '.pdf', '.docx'))
-            for f in os.listdir(docs_path)
-        ):
+        if os.path.exists(docs_path) and any(f.endswith((".txt", ".pdf", ".docx")) for f in os.listdir(docs_path)):
             courses, chunks = rag_system.add_course_folder(docs_path)
 
             assert courses >= 0
@@ -123,9 +122,9 @@ class TestRAGSystemQuery:
 
         # Verify tools were passed
         call_args = mock_ai_gen.generate_response.call_args
-        assert 'tools' in call_args.kwargs
-        assert call_args.kwargs['tools'] is not None
-        assert len(call_args.kwargs['tools']) > 0
+        assert "tools" in call_args.kwargs
+        assert call_args.kwargs["tools"] is not None
+        assert len(call_args.kwargs["tools"]) > 0
 
     def test_query_with_session_id(self, populated_rag_system):
         """Test query with session ID for conversation history"""
@@ -135,10 +134,7 @@ class TestRAGSystemQuery:
 
         session_id = populated_rag_system.session_manager.create_session()
 
-        answer, sources = populated_rag_system.query(
-            "What is machine learning?",
-            session_id=session_id
-        )
+        answer, sources = populated_rag_system.query("What is machine learning?", session_id=session_id)
 
         assert isinstance(answer, str)
 
@@ -151,7 +147,8 @@ class TestRAGSystemQuery:
         # This test documents that without a valid API key, queries will fail
         # We'll skip this if there's no API key
         import os
-        if not os.getenv('ANTHROPIC_API_KEY'):
+
+        if not os.getenv("ANTHROPIC_API_KEY"):
             pytest.skip("No ANTHROPIC_API_KEY set - cannot test real API call")
 
         # If we have a key, test might work (but could also fail due to rate limits)
@@ -174,10 +171,7 @@ class TestRAGSystemSourceTracking:
         def mock_generate(query, conversation_history=None, tools=None, tool_manager=None):
             # Simulate the AI calling the search tool
             if tool_manager:
-                result = tool_manager.execute_tool(
-                    'search_course_content',
-                    query='machine learning'
-                )
+                result = tool_manager.execute_tool("search_course_content", query="machine learning")
             return "Here's what I found about machine learning."
 
         mock_ai_instance.generate_response.side_effect = mock_generate
@@ -193,8 +187,8 @@ class TestRAGSystemSourceTracking:
         if len(sources) > 0:
             for source in sources:
                 assert isinstance(source, dict)
-                assert 'text' in source
-                assert 'link' in source
+                assert "text" in source
+                assert "link" in source
 
     def test_sources_reset_between_queries(self, populated_rag_system):
         """Test that sources are reset between different queries"""
@@ -206,9 +200,7 @@ class TestRAGSystemSourceTracking:
         _, sources1 = populated_rag_system.query("First question")
 
         # Manually set some sources to test reset
-        populated_rag_system.search_tool.last_sources = [
-            {"text": "Test", "link": "http://test.com"}
-        ]
+        populated_rag_system.search_tool.last_sources = [{"text": "Test", "link": "http://test.com"}]
 
         # Second query - sources should be reset
         _, sources2 = populated_rag_system.query("Second question")
@@ -248,9 +240,9 @@ class TestRAGSystemSessionManagement:
         assert mock_ai_gen.generate_response.call_count == 2
 
         second_call = mock_ai_gen.generate_response.call_args_list[1]
-        assert 'conversation_history' in second_call.kwargs
+        assert "conversation_history" in second_call.kwargs
         # History should not be None on second call
-        history = second_call.kwargs['conversation_history']
+        history = second_call.kwargs["conversation_history"]
         if history:  # Might be None if session is empty
             assert isinstance(history, str)
 
@@ -262,16 +254,16 @@ class TestRAGSystemAnalytics:
         """Test analytics on empty system"""
         analytics = rag_system.get_course_analytics()
 
-        assert analytics['total_courses'] == 0
-        assert analytics['course_titles'] == []
+        assert analytics["total_courses"] == 0
+        assert analytics["course_titles"] == []
 
     def test_get_course_analytics_with_data(self, populated_rag_system):
         """Test analytics with loaded data"""
         analytics = populated_rag_system.get_course_analytics()
 
-        assert analytics['total_courses'] == 1
-        assert len(analytics['course_titles']) == 1
-        assert "Introduction to Machine Learning" in analytics['course_titles']
+        assert analytics["total_courses"] == 1
+        assert len(analytics["course_titles"]) == 1
+        assert "Introduction to Machine Learning" in analytics["course_titles"]
 
 
 class TestRAGSystemIntegration:
@@ -280,6 +272,7 @@ class TestRAGSystemIntegration:
     def test_full_pipeline_with_real_docs(self, rag_system):
         """Test full pipeline with real course documents if available"""
         import os
+
         docs_path = "../docs"
 
         if not os.path.exists(docs_path):
@@ -293,7 +286,7 @@ class TestRAGSystemIntegration:
 
         # Verify data loaded
         analytics = rag_system.get_course_analytics()
-        assert analytics['total_courses'] > 0
+        assert analytics["total_courses"] > 0
 
         # Test search tool directly
         result = rag_system.search_tool.execute(query="introduction")
@@ -318,14 +311,11 @@ class TestRAGSystemToolManagerIntegration:
 
     def test_tool_manager_has_search_tool(self, rag_system):
         """Test that tool manager has search tool registered"""
-        assert 'search_course_content' in rag_system.tool_manager.tools
+        assert "search_course_content" in rag_system.tool_manager.tools
 
     def test_tool_manager_can_execute_search(self, populated_rag_system):
         """Test that tool manager can execute search"""
-        result = populated_rag_system.tool_manager.execute_tool(
-            'search_course_content',
-            query='machine learning'
-        )
+        result = populated_rag_system.tool_manager.execute_tool("search_course_content", query="machine learning")
 
         assert isinstance(result, str)
         assert len(result) > 0
@@ -333,15 +323,12 @@ class TestRAGSystemToolManagerIntegration:
     def test_sources_retrievable_from_tool_manager(self, populated_rag_system):
         """Test that sources can be retrieved from tool manager"""
         # Execute a search
-        populated_rag_system.tool_manager.execute_tool(
-            'search_course_content',
-            query='machine learning'
-        )
+        populated_rag_system.tool_manager.execute_tool("search_course_content", query="machine learning")
 
         # Get sources
         sources = populated_rag_system.tool_manager.get_last_sources()
 
         assert isinstance(sources, list)
         if len(sources) > 0:
-            assert 'text' in sources[0]
-            assert 'link' in sources[0]
+            assert "text" in sources[0]
+            assert "link" in sources[0]

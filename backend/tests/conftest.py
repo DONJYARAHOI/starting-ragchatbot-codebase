@@ -1,20 +1,21 @@
 """
 Shared test fixtures for RAG system tests
 """
-import pytest
-import tempfile
+
 import shutil
-from pathlib import Path
 import sys
+import tempfile
+from pathlib import Path
+
+import pytest
 
 # Add backend to path so we can import modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from models import Course, Lesson, CourseChunk
-from vector_store import VectorStore
-from document_processor import DocumentProcessor
-from search_tools import CourseSearchTool, ToolManager
 from config import Config
+from models import Course, CourseChunk, Lesson
+from search_tools import CourseSearchTool, ToolManager
+from vector_store import VectorStore
 
 
 @pytest.fixture
@@ -43,22 +44,14 @@ def sample_course():
         course_link="https://example.com/ml-course",
         instructor="Dr. Jane Smith",
         lessons=[
+            Lesson(lesson_number=0, title="Course Overview", lesson_link="https://example.com/ml-course/lesson-0"),
             Lesson(
-                lesson_number=0,
-                title="Course Overview",
-                lesson_link="https://example.com/ml-course/lesson-0"
+                lesson_number=1, title="Linear Regression Basics", lesson_link="https://example.com/ml-course/lesson-1"
             ),
             Lesson(
-                lesson_number=1,
-                title="Linear Regression Basics",
-                lesson_link="https://example.com/ml-course/lesson-1"
+                lesson_number=2, title="Classification Algorithms", lesson_link="https://example.com/ml-course/lesson-2"
             ),
-            Lesson(
-                lesson_number=2,
-                title="Classification Algorithms",
-                lesson_link="https://example.com/ml-course/lesson-2"
-            )
-        ]
+        ],
     )
 
 
@@ -70,20 +63,20 @@ def sample_course_chunks():
             content="Lesson 0 content: This course covers fundamental concepts in machine learning including supervised and unsupervised learning.",
             course_title="Introduction to Machine Learning",
             lesson_number=0,
-            chunk_index=0
+            chunk_index=0,
         ),
         CourseChunk(
             content="Linear regression is a fundamental algorithm used for predicting continuous values. It finds the best-fitting line through data points.",
             course_title="Introduction to Machine Learning",
             lesson_number=1,
-            chunk_index=1
+            chunk_index=1,
         ),
         CourseChunk(
             content="Classification algorithms are used to predict categorical outcomes. Common examples include logistic regression, decision trees, and neural networks.",
             course_title="Introduction to Machine Learning",
             lesson_number=2,
-            chunk_index=2
-        )
+            chunk_index=2,
+        ),
     ]
 
 
@@ -98,9 +91,9 @@ def another_sample_course():
             Lesson(
                 lesson_number=0,
                 title="Neural Networks Introduction",
-                lesson_link="https://example.com/dl-course/lesson-0"
+                lesson_link="https://example.com/dl-course/lesson-0",
             )
-        ]
+        ],
     )
 
 
@@ -112,7 +105,7 @@ def another_course_chunks():
             content="Deep learning uses neural networks with multiple layers to learn complex patterns in data.",
             course_title="Advanced Deep Learning",
             lesson_number=0,
-            chunk_index=0
+            chunk_index=0,
         )
     ]
 
@@ -120,11 +113,7 @@ def another_course_chunks():
 @pytest.fixture
 def empty_vector_store(test_config):
     """Create an empty vector store for testing"""
-    return VectorStore(
-        test_config.CHROMA_PATH,
-        test_config.EMBEDDING_MODEL,
-        test_config.MAX_RESULTS
-    )
+    return VectorStore(test_config.CHROMA_PATH, test_config.EMBEDDING_MODEL, test_config.MAX_RESULTS)
 
 
 @pytest.fixture
@@ -181,7 +170,7 @@ Classification algorithms are used to predict categorical outcomes. Common examp
 @pytest.fixture
 def temp_course_file(sample_course_document_text):
     """Create a temporary course document file"""
-    temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False)
+    temp_file = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
     temp_file.write(sample_course_document_text)
     temp_file.close()
     yield temp_file.name
