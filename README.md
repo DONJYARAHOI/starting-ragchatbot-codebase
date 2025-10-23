@@ -6,6 +6,22 @@ A Retrieval-Augmented Generation (RAG) system designed to answer questions about
 
 This application is a full-stack web application that enables users to query course materials and receive intelligent, context-aware responses. It uses ChromaDB for vector storage, Anthropic's Claude for AI generation, and provides a web interface for interaction.
 
+## Architecture
+
+For a comprehensive understanding of the system architecture, component interactions, and data flows, see [Architecture Documentation](docs/architecture.md).
+
+**Quick Architecture Overview:**
+- **RAGSystem**: Central orchestrator coordinating all components
+- **VectorStore**: ChromaDB-based semantic search with two collections (course catalog + content)
+- **AIGenerator**: Claude API client with tool-calling support
+- **ToolManager**: Extensible tool system enabling Claude to search when needed
+- **SessionManager**: Conversation history management
+
+The architecture documentation includes detailed diagrams for:
+- System component interactions
+- Query processing flow with tool-calling
+- Vector search strategy
+- Document processing pipeline
 
 ## Prerequisites
 
