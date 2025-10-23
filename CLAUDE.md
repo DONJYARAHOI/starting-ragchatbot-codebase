@@ -20,6 +20,11 @@ This is a full-stack RAG (Retrieval-Augmented Generation) system for querying co
 cd backend && uv run uvicorn app:app --reload --port 8000
 ```
 
+**Alternative (bind to all interfaces):**
+```bash
+cd backend && uv run uvicorn app:app --reload --host 0.0.0.0 --port 8000
+```
+
 **Windows users:** Use Git Bash to run commands.
 
 The application serves at:
@@ -137,3 +142,22 @@ The vector database persists to `./chroma_db` (configurable in `backend/config.p
 ### Frontend Integration
 
 The frontend is vanilla HTML/CSS/JavaScript in `frontend/` directory. It communicates with the backend via `/api/query` and maintains session IDs for conversation continuity.
+
+### Session Management Flow
+
+The `SessionManager` (backend/session_manager.py) tracks conversations:
+- Creates unique session IDs for each conversation
+- Maintains last `MAX_HISTORY` message pairs (user + assistant)
+- Conversation history is formatted as text and injected into Claude's system prompt
+- Sessions persist in memory only (reset on server restart)
+
+### AI Response Generation Flow
+
+1. User query arrives via `/api/query` endpoint
+2. `RAGSystem.query()` retrieves session history from `SessionManager`
+3. `AIGenerator` constructs prompt with history + available tools
+4. Claude may call `search_course_content` tool (via `ToolManager`)
+5. If tool called: `CourseSearchTool` performs two-phase vector search
+6. Tool results passed back to Claude for final response generation
+7. Sources extracted from `CourseSearchTool.last_sources`
+8. Response + sources returned to frontend; conversation stored in session

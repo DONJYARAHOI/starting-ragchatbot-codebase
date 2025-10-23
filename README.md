@@ -54,3 +54,7 @@ The application will be available at:
 - Web Interface: `http://localhost:8000`
 - API Documentation: `http://localhost:8000/docs`
 
+## Development
+
+For information on code quality tools, linting, formatting, and development best practices, see [DEVELOPMENT.md](DEVELOPMENT.md).
+

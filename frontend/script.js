@@ -5,7 +5,7 @@ const API_URL = '/api';
 let currentSessionId = null;
 
 // DOM elements
-let chatMessages, chatInput, sendButton, totalCourses, courseTitles;
+let chatMessages, chatInput, sendButton, totalCourses, courseTitles, newChatButton, themeToggle;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -15,10 +15,13 @@ document.addEventListener('DOMContentLoaded', () => {
     sendButton = document.getElementById('sendButton');
     totalCourses = document.getElementById('totalCourses');
     courseTitles = document.getElementById('courseTitles');
-    
+    newChatButton = document.getElementById('newChatButton');
+    themeToggle = document.getElementById('themeToggle');
+
     setupEventListeners();
     createNewSession();
     loadCourseStats();
+    initializeTheme();
 });
 
 // Event Listeners
@@ -28,8 +31,21 @@ function setupEventListeners() {
     chatInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') sendMessage();
     });
-    
-    
+
+    // New chat button
+    newChatButton.addEventListener('click', startNewChat);
+
+    // Theme toggle button
+    themeToggle.addEventListener('click', toggleTheme);
+
+    // Keyboard navigation for theme toggle
+    themeToggle.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggleTheme();
+        }
+    });
+
     // Suggested questions
     document.querySelectorAll('.suggested-item').forEach(button => {
         button.addEventListener('click', (e) => {
@@ -115,25 +131,40 @@ function addMessage(content, type, sources = null, isWelcome = false) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${type}${isWelcome ? ' welcome-message' : ''}`;
     messageDiv.id = `message-${messageId}`;
-    
+
     // Convert markdown to HTML for assistant messages
     const displayContent = type === 'assistant' ? marked.parse(content) : escapeHtml(content);
-    
+
     let html = `<div class="message-content">${displayContent}</div>`;
-    
+
     if (sources && sources.length > 0) {
+        // Format sources as clickable links when available
+        const formattedSources = sources.map(source => {
+            // Handle both old string format and new object format
+            if (typeof source === 'string') {
+                return escapeHtml(source);
+            } else if (source && typeof source === 'object') {
+                const text = escapeHtml(source.text || 'Unknown Source');
+                if (source.link) {
+                    return `<a href="${escapeHtml(source.link)}" target="_blank" rel="noopener noreferrer" class="source-link">${text}</a>`;
+                }
+                return text;
+            }
+            return 'Unknown Source';
+        }).join(', ');
+
         html += `
             <details class="sources-collapsible">
                 <summary class="sources-header">Sources</summary>
-                <div class="sources-content">${sources.join(', ')}</div>
+                <div class="sources-content">${formattedSources}</div>
             </details>
         `;
     }
-    
+
     messageDiv.innerHTML = html;
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
-    
+
     return messageId;
 }
 
@@ -150,6 +181,17 @@ async function createNewSession() {
     currentSessionId = null;
     chatMessages.innerHTML = '';
     addMessage('Welcome to the Course Materials Assistant! I can help you with questions about courses, lessons and specific content. What would you like to know?', 'assistant', null, true);
+}
+
+function startNewChat() {
+    // Clear any pending input
+    chatInput.value = '';
+
+    // Create a new session (resets session ID and clears chat)
+    createNewSession();
+
+    // Focus the input field for immediate use
+    chatInput.focus();
 }
 
 // Load course statistics
@@ -187,5 +229,33 @@ async function loadCourseStats() {
         if (courseTitles) {
             courseTitles.innerHTML = '<span class="error">Failed to load courses</span>';
         }
+    }
+}
+
+// Theme Functions
+function initializeTheme() {
+    // Check localStorage for saved theme preference
+    const savedTheme = localStorage.getItem('theme');
+
+    if (savedTheme === 'light') {
+        document.documentElement.classList.add('light-theme');
+    } else if (!savedTheme) {
+        // Default to dark theme if no preference is saved
+        document.documentElement.classList.remove('light-theme');
+    }
+}
+
+function toggleTheme() {
+    const root = document.documentElement;
+    const isLightTheme = root.classList.contains('light-theme');
+
+    if (isLightTheme) {
+        // Switch to dark theme
+        root.classList.remove('light-theme');
+        localStorage.setItem('theme', 'dark');
+    } else {
+        // Switch to light theme
+        root.classList.add('light-theme');
+        localStorage.setItem('theme', 'light');
     }
 }
